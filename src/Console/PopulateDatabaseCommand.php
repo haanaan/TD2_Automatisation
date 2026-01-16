@@ -30,7 +30,7 @@ class PopulateDatabaseCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $output->writeln('Populate database...');
+        $output->writeln('Populate database with random data...');
 
         /** @var \Illuminate\Database\Capsule\Manager $db */
         $db = $this->app->getContainer()->get('db');
@@ -41,35 +41,76 @@ class PopulateDatabaseCommand extends Command
         $db->getConnection()->statement("TRUNCATE `companies`");
         $db->getConnection()->statement("SET FOREIGN_KEY_CHECKS=1");
 
-        $faker = FakerFactory::create();
+        $faker = FakerFactory::create('fr_FR');
 
-        $db->getConnection()->statement("INSERT INTO `companies` VALUES
-    (1,'Stack Exchange','0601010101','stack@exchange.com','https://stackexchange.com/','https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Verisure_information_technology_department_at_Ch%C3%A2tenay-Malabry_-_2019-01-10.jpg/1920px-Verisure_information_technology_department_at_Ch%C3%A2tenay-Malabry_-_2019-01-10.jpg', now(), now(), null),
-    (2,'Google','0602020202','contact@google.com','https://www.google.com','https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Google_office_%284135991953%29.jpg/800px-Google_office_%284135991953%29.jpg?20190722090506',now(), now(), null)
-        ");
+        $companiesCount = rand(2, 4);
+        $totalEmployees = 10;
+        $employeesCreated = 0;
 
-        $db->getConnection()->statement("INSERT INTO `offices` VALUES
-    (1,'Bureau de Nancy','1 rue Stanistlas','Nancy','54000','France','nancy@stackexchange.com',NULL,1, now(), now()),
-    (2,'Burea de Vandoeuvre','46 avenue Jeanne d\'Arc','Vandoeuvre','54500','France',NULL,NULL,1, now(), now()),
-    (3,'Siege sociale','2 rue de la primatiale','Paris','75000','France',NULL,NULL,2, now(), now()),
-    (4,'Bureau Berlinois','192 avenue central','Berlin','12277','Allemagne',NULL,NULL,2, now(), now())
-        ");
+        for ($i = 0; $i < $companiesCount; $i++) {
 
-        $db->getConnection()->statement("INSERT INTO `employees` VALUES
-     (1,'Camille','La Chenille',1,'camille.la@chenille.com',NULL,'Ingénieur', now(), now()),
-     (2,'Albert','Mudhat',2,'albert.mudhat@aqume.net',NULL,'Superviseur', now(), now()),
-     (3,'Sylvie','Tesse',3,'sylive.tesse@factice.local',NULL,'PDG', now(), now()),
-     (4,'John','Doe',4,'john.doe@generique.org',NULL,'Testeur', now(), now()),
-     (5,'Jean','Bon',1,'jean@test.com',NULL,'Developpeur', now(), now()),
-     (6,'Anais','Dufour',2,'anais@aqume.net',NULL,'DBA', now(), now()),
-     (7,'Sylvain','Poirson',3,'sylvain@factice.local',NULL,'Administrateur réseau', now(), now()),
-     (8,'Telma','Thiriet',4,'telma@generique.org',NULL,'Juriste', now(), now())
-        ");
+            // Création société
+            $company = new Company();
+            $company->name = $faker->company;
+            $company->phone = $faker->phoneNumber;
+            $company->email = $faker->companyEmail;
+            $company->website = $faker->url;
+            $company->image = $faker->imageUrl(800, 600, 'business');
+            $company->save();
 
-        $db->getConnection()->statement("update companies set head_office_id = 1 where id = 1;");
-        $db->getConnection()->statement("update companies set head_office_id = 3 where id = 2;");
 
-        $output->writeln('Database created successfully!');
-        return 0;
+            $officesCount = rand(2, 3);
+            $offices = [];
+
+            // Création bureaux
+            for ($j = 0; $j < $officesCount; $j++) {
+                $office = new Office();
+                $office->name = 'Bureau ' . $faker->city;
+                $office->address = $faker->streetAddress;
+                $office->city = $faker->city;
+                $office->zip_code = $faker->postcode;
+                $office->country = $faker->country;
+                $office->email = $faker->optional()->companyEmail;
+                $office->phone = $faker->optional()->phoneNumber;
+                $office->company_id = $company->id;
+                $office->save();
+
+                $offices[] = $office;
+            }
+
+            // Définir le siège social
+            $company->head_office_id = $offices[0]->id;
+            $company->save();
+
+            // Création employés
+            foreach ($offices as $office) {
+                if ($employeesCreated >= $totalEmployees) {
+                    break 2;
+                }
+
+                $employeesPerOffice = rand(1, 3);
+
+                for ($k = 0; $k < $employeesPerOffice; $k++) {
+                    if ($employeesCreated >= $totalEmployees) {
+                        break;
+                    }
+
+                    $employee = new Employee();
+                    $employee->first_name = $faker->firstName;
+                    $employee->last_name = $faker->lastName;
+                    $employee->office_id = $office->id;
+                    $employee->email = $faker->unique()->safeEmail;
+                    $employee->phone = $faker->optional()->phoneNumber;
+                    $employee->job_title = $faker->jobTitle;
+                    $employee->save();
+
+                    $employeesCreated++;
+                }
+            }
+        }
+
+        $output->writeln('Database populated successfully!');
+        return Command::SUCCESS;
     }
+
 }
