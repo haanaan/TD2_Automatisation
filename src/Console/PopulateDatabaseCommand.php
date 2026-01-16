@@ -10,6 +10,7 @@ use Slim\App;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Faker\Factory as FakerFactory;
 
 class PopulateDatabaseCommand extends Command
 {
@@ -27,7 +28,7 @@ class PopulateDatabaseCommand extends Command
         $this->setDescription('Populate database');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output ): int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('Populate database...');
 
@@ -40,6 +41,7 @@ class PopulateDatabaseCommand extends Command
         $db->getConnection()->statement("TRUNCATE `companies`");
         $db->getConnection()->statement("SET FOREIGN_KEY_CHECKS=1");
 
+        $faker = FakerFactory::create();
 
         $db->getConnection()->statement("INSERT INTO `companies` VALUES
     (1,'Stack Exchange','0601010101','stack@exchange.com','https://stackexchange.com/','https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Verisure_information_technology_department_at_Ch%C3%A2tenay-Malabry_-_2019-01-10.jpg/1920px-Verisure_information_technology_department_at_Ch%C3%A2tenay-Malabry_-_2019-01-10.jpg', now(), now(), null),
